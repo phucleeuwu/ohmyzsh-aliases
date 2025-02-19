@@ -1,26 +1,35 @@
-name: Update Oh My Zsh Aliases
+name: Sync Oh My Zsh Aliases
 
 on:
   schedule:
     - cron: "0 */6 * * *"  # Runs every 6 hours
-  workflow_dispatch:
+  workflow_dispatch:  # Allow manual runs
 
 jobs:
-  update-aliases:
+  sync-aliases:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: false  # We will manually authenticate
+          persist-credentials: false  # We manually authenticate
 
-      - name: Fetch Latest Aliases File
-        run: curl -sSL "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/aliases/aliases.plugin.zsh" -o aliases.plugin.zsh
+      - name: Fetch Latest Aliases Plugin Files
+        run: |
+          # Define the aliases plugin folder URL
+          PLUGIN_URL="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/aliases"
+          FILES=("aliases.plugin.zsh" "README.md" "cheatsheet.py" "termcolor.py")
+
+          # Download each file to the root directory
+          for file in "${FILES[@]}"; do
+            echo "Downloading $file..."
+            curl -sSL "$PLUGIN_URL/$file" -o "$file"
+          done
 
       - name: Check for Changes
         run: |
-          git add aliases.plugin.zsh
+          git add .
           if git diff --cached --quiet; then
             echo "No changes detected. Exiting..."
             exit 0
@@ -28,10 +37,10 @@ jobs:
 
       - name: Commit and Push Changes
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}  # Use the secret token
+          GH_PAT: ${{ secrets.GH_PAT }}  # Use the GitHub token stored in secrets
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
-          git commit -m "Update aliases.plugin.zsh ($(date))"
+          git commit -m "Sync latest Oh My Zsh aliases ($(date))"
           git push origin main
