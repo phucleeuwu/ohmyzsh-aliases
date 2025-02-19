@@ -3,7 +3,7 @@ name: Update Oh My Zsh Aliases
 on:
   schedule:
     - cron: "0 */6 * * *"  # Runs every 6 hours
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   update-aliases:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # We will manually authenticate
 
       - name: Fetch Latest Aliases File
         run: curl -sSL "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/aliases/aliases.plugin.zsh" -o aliases.plugin.zsh
@@ -25,8 +27,11 @@ jobs:
           fi
 
       - name: Commit and Push Changes
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}  # Use the secret token
         run: |
-          git config --global user.name "github-actions[bot]"
+          git config --global user.name "GitHub Actions Bot"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
           git commit -m "Update aliases.plugin.zsh ($(date))"
-          git push
+          git push origin main
